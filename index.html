@@ -1,0 +1,205 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Contador editable</title>
+<style>
+body{font-family:Arial;background:#f2f2f2;padding:15px}
+h1{text-align:center}
+.top{display:flex;gap:10px;margin-bottom:20px}
+input,button{padding:12px;font-size:18px;border-radius:10px}
+input{flex:1;border:1px solid #ccc}
+button{border:none}
+.add{background:#2563eb;color:#fff}
+.card{background:#fff;padding:15px;border-radius:15px;margin-bottom:20px;box-shadow:0 2px 6px rgba(0,0,0,.1)}
+.title{font-size:22px;font-weight:bold}
+.total{font-size:48px;text-align:center;margin:15px 0}
+.controls{display:flex;gap:10px;margin-bottom:10px}
+.controls button{flex:1;color:#fff;font-size:30px}
+.minus{background:#dc2626}
+.plus{background:#16a34a}
+.delete{width:100%;background:#6b7280;color:#fff;margin-top:10px}
+.history{margin-top:15px;background:#fafafa;padding:10px;border-radius:10px}
+.day{display:flex;justify-content:space-between;align-items:center;padding:8px 0;border-bottom:1px solid #ddd}
+.day input{width:140px;font-size:14px}
+.number{font-weight:bold;font-size:18px}
+</style>
+</head>
+<body>
+
+<h1>📦 Contador editable</h1>
+
+<div class="top">
+<input id="nombre" placeholder="Nombre del lote">
+<button class="add" onclick="crear()">Añadir</button>
+</div>
+
+<div id="lista"></div>
+
+<script>
+
+let datos = JSON.parse(localStorage.getItem('contador_editable')) || [];
+
+function guardar(){
+localStorage.setItem('contador_editable', JSON.stringify(datos));
+}
+
+function fechaHoy(){
+return new Date().toISOString().split('T')[0];
+}
+
+function render(){
+
+const lista = document.getElementById('lista');
+
+lista.innerHTML = '';
+
+datos.forEach((item,i)=>{
+
+let agrupado = {};
+
+item.historial.forEach(h=>{
+
+if(!agrupado[h.fecha]){
+agrupado[h.fecha] = 0;
+}
+
+agrupado[h.fecha] += h.valor;
+
+});
+
+let historialHTML = '';
+
+Object.keys(agrupado).reverse().forEach(f=>{
+
+historialHTML += `
+<div class="day">
+<input type="date" value="${f}" onchange="editarFecha(${i}, '${f}', this.value)">
+<span class="number">${agrupado[f]}</span>
+</div>
+`;
+
+});
+
+const card = document.createElement('div');
+
+card.className = 'card';
+
+card.innerHTML = `
+<div class="title">${item.nombre}</div>
+
+<div class="total">${item.total}</div>
+
+<div class="controls">
+<button class="minus" onclick="menos(${i})">−</button>
+<button class="plus" onclick="mas(${i})">+</button>
+</div>
+
+<button class="delete" onclick="eliminar(${i})">Eliminar lote</button>
+
+<div class="history">
+<strong>Resumen por días</strong>
+${historialHTML}
+</div>
+`;
+
+lista.appendChild(card);
+
+});
+
+}
+
+function crear(){
+
+const texto = document.getElementById('nombre').value.trim();
+
+if(texto === ''){
+alert('Escribe un nombre');
+return;
+}
+
+datos.push({
+nombre:texto,
+total:0,
+historial:[]
+});
+
+document.getElementById('nombre').value = '';
+
+guardar();
+
+render();
+
+}
+
+function mas(i){
+
+datos[i].total++;
+
+datos[i].historial.push({
+fecha:fechaHoy(),
+valor:1
+});
+
+guardar();
+
+render();
+
+}
+
+function menos(i){
+
+if(datos[i].total > 0){
+
+datos[i].total--;
+
+datos[i].historial.push({
+fecha:fechaHoy(),
+valor:-1
+});
+
+guardar();
+
+render();
+
+}
+
+}
+
+function editarFecha(index, vieja, nueva){
+
+datos[index].historial.forEach(h=>{
+
+if(h.fecha === vieja){
+h.fecha = nueva;
+}
+
+});
+
+guardar();
+
+render();
+
+}
+
+function eliminar(i){
+
+if(confirm('¿Eliminar lote?')){
+
+datos.splice(i,1);
+
+guardar();
+
+render();
+
+}
+
+}
+
+render();
+
+</script>
+
+</body>
+</html>
